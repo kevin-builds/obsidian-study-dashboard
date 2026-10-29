@@ -86,8 +86,19 @@ export const folder: WidgetDef = {
 		const { app, settings } = ctx;
 		const dir = normalizePath(settings.folderPath || "/");
 		const root = app.vault.getAbstractFileByPath(dir);
+
+		// Neue Notiz im Ordner anlegen und mit markiertem Titel öffnen (wie Obsidians "Neue Notiz")
+		const add = ctx.card.aside.createEl("button", { text: "＋ Neue Notiz", cls: "sd-btn sd-btn-small" });
+		add.addEventListener("click", async () => {
+			if (!app.vault.getAbstractFileByPath(dir)) await app.vault.createFolder(dir);
+			let path = normalizePath(`${dir}/Unbenannt.md`);
+			for (let i = 1; app.vault.getAbstractFileByPath(path); i++) path = normalizePath(`${dir}/Unbenannt ${i}.md`);
+			const file = await app.vault.create(path, "");
+			await app.workspace.getLeaf("tab").openFile(file, { active: true, state: { mode: "source" }, eState: { rename: "all" } });
+		});
+
 		if (!(root instanceof TFolder)) {
-			empty(body, `Ordner „${dir}" nicht gefunden.`);
+			empty(body, `Ordner „${dir}" gibt es noch nicht — „＋ Neue Notiz“ legt ihn an.`);
 			return;
 		}
 		const files: TFile[] = [];
