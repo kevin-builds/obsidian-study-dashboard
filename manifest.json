@@ -1,0 +1,10 @@
+{
+  "id": "study-dashboard",
+  "name": "Study Dashboard",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.0",
+  "description": "Dashboard mit Aktivitäts-Heatmap, iCal-Kalender, Lernplan für Spaced Repetition, Klausur-Countdown, To-Dos und zuletzt bearbeiteten Notizen.",
+  "author": "Kevin Siess",
+  "authorUrl": "https://github.com/kevin-builds",
+  "isDesktopOnly": false
+}
