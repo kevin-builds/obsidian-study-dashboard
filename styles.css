@@ -48,22 +48,31 @@ body {
 	display: none !important;
 }
 
-/* ---------- Grid & Karten ---------- */
+/* ---------- Layout & Karten ----------
+   Flexbox: Karten einer Zeile sind gleich hoch, eine einzelne Karte
+   in der letzten Zeile nutzt die volle Breite statt eine Lücke zu lassen. */
 .sd-root {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+	display: flex;
+	flex-wrap: wrap;
 	gap: var(--sd-gap);
-	align-items: start;
+	align-items: stretch;
 }
 .sd-card {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 var(--sd-card-min, 420px);
+	min-width: min(100%, var(--sd-card-min, 420px));
 	background: var(--sd-card-bg);
 	border: 1px solid var(--sd-border);
 	border-radius: var(--sd-radius);
 	padding: 14px 16px;
-	min-width: 0;
 }
 .sd-card.sd-full {
-	grid-column: 1 / -1;
+	flex-basis: 100%;
+}
+.sd-card-body {
+	flex: 1 1 auto;
+	min-height: 0;
 }
 .sd-card.sd-hidden {
 	display: none;
