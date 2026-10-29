@@ -370,18 +370,25 @@ body {
 }
 .sd-todos {
 	margin: 4px 0;
-	padding-left: 0;
+	padding: 0;
+	list-style: none;
 }
-.sd-todos .task-list-item {
+.sd-todos .sd-todo {
 	display: flex;
 	align-items: flex-start;
-	gap: 6px;
-	padding: 3px 0;
+	gap: 8px;
+	padding: 4px 0;
+	margin: 0;
 	list-style: none;
-	margin-left: 0;
 }
-.sd-todos .task-list-item-checkbox { margin-top: 3px; flex-shrink: 0; }
-.sd-todos .task-list-item.is-done { opacity: 0.4; text-decoration: line-through; }
+.sd-todos .sd-todo::before,
+.sd-todos .sd-todo::marker { content: none; }
+.sd-todos .sd-todo-checkbox {
+	margin: 2px 0 0 0;
+	flex-shrink: 0;
+	cursor: pointer;
+}
+.sd-todos .sd-todo.is-done { opacity: 0.4; text-decoration: line-through; }
 
 /* ---------- Wiederholung ---------- */
 .sd-review-head {

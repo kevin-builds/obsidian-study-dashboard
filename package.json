@@ -1,6 +1,6 @@
 {
   "name": "obsidian-study-dashboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Ein Dashboard für Obsidian: Aktivitäts-Heatmap, Kalender (iCal), Lernplan für Spaced Repetition, Klausur-Countdown, To-Dos und mehr.",
   "main": "main.js",
   "scripts": {
@@ -8,7 +8,12 @@
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
-  "keywords": ["obsidian", "obsidian-plugin", "dashboard", "spaced-repetition"],
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "dashboard",
+    "spaced-repetition"
+  ],
   "author": "Kevin Siess",
   "license": "MIT",
   "devDependencies": {

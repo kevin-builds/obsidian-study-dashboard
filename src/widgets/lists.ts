@@ -42,20 +42,18 @@ export const todos: WidgetDef = {
 		}
 		const lines = (await app.vault.cachedRead(file)).split("\n");
 		const open: { line: number; text: string }[] = [];
-		let done = 0;
 		lines.forEach((l, i) => {
 			const m = l.match(TASK);
-			if (!m) return;
-			if (m[2] === " ") open.push({ line: i, text: m[4] });
-			else done++;
+			if (m && m[2] === " ") open.push({ line: i, text: m[4] });
 		});
-		aside.setText(`${open.length} offen · ${done} erledigt`);
+		aside.setText(`${open.length} offen`);
 
 		if (!open.length) empty(body, "Nichts offen ✅");
-		const list = body.createEl("ul", { cls: "sd-todos contains-task-list" });
+		// Bewusst ohne Obsidians task-list-Klassen: deren CSS schiebt die Checkbox links aus der Karte heraus
+		const list = body.createEl("ul", { cls: "sd-todos" });
 		for (const t of open) {
-			const li = list.createEl("li", { cls: "task-list-item" });
-			const cb = li.createEl("input", { type: "checkbox", cls: "task-list-item-checkbox" });
+			const li = list.createEl("li", { cls: "sd-todo" });
+			const cb = li.createEl("input", { type: "checkbox", cls: "sd-todo-checkbox" });
 			const label = li.createSpan({ cls: "sd-todo-text" });
 			await ctx.markdown(label, t.text, file.path);
 			// <p> aus dem Markdown-Renderer entpacken, damit die Zeile kompakt bleibt
