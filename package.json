@@ -1,6 +1,6 @@
 {
   "name": "obsidian-study-dashboard",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Ein Dashboard für Obsidian: Aktivitäts-Heatmap, Kalender (iCal), Lernplan für Spaced Repetition, Klausur-Countdown, To-Dos und mehr.",
   "main": "main.js",
   "scripts": {
