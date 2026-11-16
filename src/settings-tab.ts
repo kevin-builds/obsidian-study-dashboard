@@ -27,6 +27,39 @@ export class DashboardSettingTab extends PluginSettingTab {
 			.setDesc("Öffnet das Dashboard als eigene Ansicht, sobald Obsidian startet. Alternativ den Codeblock ```study-dashboard``` in eine Notiz schreiben (z.B. für das Homepage-Plugin).")
 			.addToggle((t) => t.setValue(s.openOnStartup).onChange((v) => ((s.openOnStartup = v), save())));
 
+		// ---------- Dashboard-Ordner ----------
+		new Setting(containerEl)
+			.setName("Dashboard-Ordner")
+			.setDesc("Legt einen Ordner mit Home (das Dashboard als Notiz), To-Dos, Klausuren und Kalender an. Klausuren und Kalender lassen sich dann direkt in diesen Notizen pflegen. Vorhandene Dateien werden nicht überschrieben.")
+			.setHeading();
+		let folderName = "Dashboard";
+		new Setting(containerEl)
+			.setName("Ordner anlegen")
+			.addText((t) => t.setPlaceholder("Dashboard").setValue(folderName).onChange((v) => (folderName = v.trim() || "Dashboard")))
+			.addButton((b) =>
+				b
+					.setButtonText("Anlegen")
+					.setCta()
+					.onClick(async () => {
+						await this.plugin.createDashboardFolder(folderName);
+						this.display();
+					})
+			);
+		new Setting(containerEl)
+			.setName("Klausuren-Notiz")
+			.setDesc("Notiz mit der Tabelle | Fach | Deck | Datum |. Leer = nur die Klausuren unten in den Einstellungen.")
+			.addText((t) => t.setPlaceholder("Dashboard/Klausuren.md").setValue(s.examsFile).onChange((v) => ((s.examsFile = v.trim()), save())));
+		new Setting(containerEl)
+			.setName("Kalender-Notiz")
+			.setDesc("Notiz mit Zeilen „Kalender:: Name | Link | #Farbe“ und „Farbe:: Stichwort | #Farbe“. Leer = nur die Kalender unten in den Einstellungen.")
+			.addText((t) =>
+				t.setPlaceholder("Dashboard/Kalender.md").setValue(s.calendarFile).onChange((v) => {
+					s.calendarFile = v.trim();
+					this.plugin.clearCalendarCache();
+					save();
+				})
+			);
+
 		// ---------- Widgets ----------
 		new Setting(containerEl).setName("Widgets").setDesc("Ein-/ausschalten und Reihenfolge festlegen.").setHeading();
 		s.widgets.forEach((w, i) => {

@@ -59,7 +59,20 @@ Es gibt zwei Wege, das Dashboard zu öffnen:
   ```
   ````
 
-  Verfügbare Namen: `activity`, `calendar`, `calendarEmbed`, `studyplan`, `countdown`, `todos`, `folder`, `recent`, `review`.
+  Verfügbare Namen: `activity`, `lecturePlan`, `calendar`, `calendarEmbed`, `studyplan`, `countdown`, `todos`, `folder`, `recent`, `review`.
+
+## Schnellstart: Dashboard-Ordner
+
+In den Plugin-Einstellungen unter **Dashboard-Ordner** → *Anlegen* (oder Befehl *Study Dashboard: Dashboard-Ordner mit Vorlagen anlegen*) entsteht ein Ordner `Dashboard/` mit vier Notizen:
+
+| Notiz | Wofür |
+| --- | --- |
+| `Home.md` | Das Dashboard als Notiz. Mit dem *Homepage*-Plugin als Startseite einstellen. |
+| `To-Dos.md` | Die To-Do-Liste. |
+| `Klausuren.md` | Tabelle `\| Fach \| Deck \| Datum \|` für den Klausur-Countdown. |
+| `Kalender.md` | Zeilen `Kalender:: Name \| Link \| #Farbe` und `Farbe:: Stichwort \| #Farbe`, mit Anleitung für Apple, Google und Outlook. |
+
+Die Vorlagen sind leer, die Pfade werden automatisch eingetragen. Vorhandene Dateien werden nie überschrieben. Was zusätzlich in den Plugin-Einstellungen steht (Klausuren, Kalender), wird ergänzt.
 
 ## Kalender einbinden
 

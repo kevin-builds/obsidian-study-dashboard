@@ -1,6 +1,7 @@
-import { debounce, ItemView, MarkdownRenderChild, Plugin, requestUrl, TAbstractFile, WorkspaceLeaf } from "obsidian";
+import { debounce, ItemView, MarkdownRenderChild, normalizePath, Notice, Plugin, requestUrl, TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
 import { DashboardRenderer } from "./dashboard";
 import { IcsEvent, parseICS } from "./ics";
+import { createTemplateFolder, parseCalendarNote, parseExams, readNote, TEMPLATE_FILES } from "./note-config";
 import { DashboardSettings, DEFAULT_SETTINGS, normalizeSettings, WIDGET_LABELS, WidgetId } from "./settings";
 import { DashboardSettingTab } from "./settings-tab";
 
@@ -62,6 +63,7 @@ export default class StudyDashboardPlugin extends Plugin {
 		this.registerView(VIEW_TYPE, (leaf) => new DashboardView(leaf, this));
 		this.addRibbonIcon("layout-dashboard", "Dashboard öffnen", () => this.openView());
 		this.addCommand({ id: "open", name: "Dashboard öffnen", callback: () => this.openView() });
+		this.addCommand({ id: "create-folder", name: "Dashboard-Ordner mit Vorlagen anlegen", callback: () => this.createDashboardFolder() });
 		this.addCommand({
 			id: "refresh",
 			name: "Dashboard neu laden (Kalender neu abrufen)",
@@ -112,6 +114,50 @@ export default class StudyDashboardPlugin extends Plugin {
 		const leaf = replace ? workspace.getLeaf(false) : workspace.getLeaf("tab");
 		await leaf.setViewState({ type: VIEW_TYPE, active: true });
 		workspace.revealLeaf(leaf);
+	}
+
+	/**
+	 * Einstellungen plus Klausuren/Kalender aus den Notizen (falls eingestellt).
+	 * Einträge aus den Notizen kommen zuerst; doppelte aus den Einstellungen (gleiches Deck/gleicher Link) entfallen.
+	 */
+	async effectiveSettings(): Promise<DashboardSettings> {
+		const s = this.settings;
+		const [examText, calText] = await Promise.all([readNote(this.app, s.examsFile), readNote(this.app, s.calendarFile)]);
+		if (examText === null && calText === null) return s;
+		const out = { ...s };
+		if (examText !== null) {
+			const fromNote = parseExams(examText);
+			const key = (e: { subject: string; deck: string }) => (e.deck || e.subject).toLowerCase();
+			const seen = new Set(fromNote.map(key));
+			out.exams = [...fromNote, ...s.exams.filter((e) => !seen.has(key(e)))];
+		}
+		if (calText !== null) {
+			const note = parseCalendarNote(calText);
+			const urls = new Set(note.calendars.map((c) => c.url));
+			out.calendars = [...note.calendars, ...s.calendars.filter((c) => !urls.has(c.url.trim()))];
+			out.colorRules = [...note.colorRules, ...s.colorRules];
+		}
+		return out;
+	}
+
+	/** Legt Dashboard/ mit Home, To-Dos, Klausuren und Kalender an und stellt die Pfade darauf ein. */
+	async createDashboardFolder(folder = "Dashboard") {
+		try {
+			const { dir, created, kept } = await createTemplateFolder(this.app, folder);
+			const s = this.settings;
+			s.todoFile = `${dir}/${TEMPLATE_FILES.todos}`;
+			s.examsFile = `${dir}/${TEMPLATE_FILES.exams}`;
+			s.calendarFile = `${dir}/${TEMPLATE_FILES.calendar}`;
+			// Die Dashboard-Dateien sollen nicht als eigene Aktivität zählen
+			if (!s.excludedFolders.includes(dir)) s.excludedFolders.push(dir);
+			await this.saveSettings();
+			const msg = created.length ? `Angelegt in „${dir}“: ${created.join(", ")}.` : `„${dir}“ war schon vollständig.`;
+			new Notice(msg + (kept.length && created.length ? ` Unverändert: ${kept.join(", ")}.` : ""));
+			const home = this.app.vault.getAbstractFileByPath(normalizePath(`${dir}/${TEMPLATE_FILES.home}`));
+			if (home instanceof TFile) await this.app.workspace.getLeaf("tab").openFile(home);
+		} catch (e) {
+			new Notice(`Dashboard-Ordner konnte nicht angelegt werden: ${e instanceof Error ? e.message : e}`);
+		}
 	}
 
 	refreshAll(onlyVisible = false, onlyStale = false) {

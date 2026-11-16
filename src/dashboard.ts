@@ -75,7 +75,9 @@ export class DashboardRenderer {
 	async render() {
 		this.stale = false;
 		const gen = ++this.generation;
-		const { app, settings } = this.plugin;
+		const { app } = this.plugin;
+		const settings = await this.plugin.effectiveSettings();
+		if (gen !== this.generation) return;
 		const scrollTop = this.root.closest(".view-content, .markdown-preview-view")?.scrollTop;
 
 		const grid = createDiv({ cls: "sd-root" });
