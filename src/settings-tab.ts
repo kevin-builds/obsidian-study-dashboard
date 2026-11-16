@@ -92,7 +92,7 @@ export class DashboardSettingTab extends PluginSettingTab {
 			.setName("Karten in der Wiederholung")
 			.addText((t) => num(t, s.reviewCount, (v) => ((s.reviewCount = v), save())));
 
-		new Setting(containerEl).setName("Klausuren").setDesc("Deck = Unter-Tag von #flashcards, z.B. „Mathe“ für #flashcards/Mathe. Datum leer lassen, wenn noch unbekannt.").setHeading();
+		new Setting(containerEl).setName("Klausuren").setDesc("Deck = Unter-Tag von #flashcards, z.B. „Mathe“ für #flashcards/Mathe oder #flashcards/5_Semester/Mathe (Semester-Ebene wird ignoriert). Datum leer lassen, wenn noch unbekannt.").setHeading();
 		s.exams.forEach((ex, i) => {
 			new Setting(containerEl)
 				.setClass("sd-settings-row")

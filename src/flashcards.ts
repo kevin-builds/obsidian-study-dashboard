@@ -49,7 +49,9 @@ export async function loadFlashcards(app: App, tag: string, isExcluded: (f: TFil
 		const fcTag = tags.find((t) => t === "flashcards" || t.startsWith("flashcards/"));
 		// Originale Schreibweise des Deck-Namens aus dem Text holen (getAllTags liefert sie, normTag macht klein)
 		const rawFc = cache ? (getAllTags(cache) ?? []).find((t) => normTag(t) === fcTag) : undefined;
-		const deck = rawFc ? rawFc.split("/")[1] || "Allgemein" : file.basename;
+		// Semester-Ebene überspringen: #flashcards/5_Semester/IT-Sicherheit → Deck „IT-Sicherheit“
+		const deckParts = rawFc ? rawFc.split("/").slice(1).filter((p) => !/^\d+_Semester$/i.test(p)) : [];
+		const deck = rawFc ? deckParts[0] || "Allgemein" : file.basename;
 
 		const total = (content.match(/^\?\??$/gm) || []).length + (content.match(INLINE_CARD) || []).length;
 		let due = 0, mature = 0, scheduled = 0;
