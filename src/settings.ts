@@ -67,10 +67,6 @@ export interface DashboardSettings {
 	// To-Dos
 	todoFile: string;
 
-	// Notizen mit Klausuren-Tabelle und Kalender-Zeilen (leer = nur Einstellungen)
-	examsFile: string;
-	calendarFile: string;
-
 	// Ordner-Widget
 	folderPath: string;
 	folderTitle: string;
@@ -128,8 +124,6 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
 	examColor: "#e93147",
 
 	todoFile: "To-Dos.md",
-	examsFile: "",
-	calendarFile: "",
 
 	folderPath: "Notizen",
 	folderTitle: "🗒️ Notizen",
