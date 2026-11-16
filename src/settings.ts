@@ -1,5 +1,6 @@
 export type WidgetId =
 	| "activity"
+	| "lecturePlan"
 	| "calendar"
 	| "calendarEmbed"
 	| "studyplan"
@@ -52,6 +53,10 @@ export interface DashboardSettings {
 	reviewCount: number;
 	exams: Exam[];
 
+	// Vorlesungsplan
+	lecturePlanUrl: string;
+	lecturePlanCollapsed: boolean;
+
 	// Kalender
 	calendars: CalendarSource[];
 	colorRules: ColorRule[];
@@ -72,6 +77,7 @@ export interface DashboardSettings {
 
 export const WIDGET_LABELS: Record<WidgetId, string> = {
 	activity: "📊 Aktivität (Heatmap)",
+	lecturePlan: "🎓 Vorlesungsplan",
 	calendar: "📅 Kalender",
 	calendarEmbed: "📆 Kalender-iframe",
 	studyplan: "🎴 Lernplan",
@@ -85,6 +91,7 @@ export const WIDGET_LABELS: Record<WidgetId, string> = {
 export const DEFAULT_SETTINGS: DashboardSettings = {
 	widgets: [
 		{ id: "activity", enabled: true },
+		{ id: "lecturePlan", enabled: true },
 		{ id: "calendar", enabled: true },
 		{ id: "calendarEmbed", enabled: false },
 		{ id: "studyplan", enabled: true },
@@ -107,6 +114,9 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
 	reviewCount: 10,
 	exams: [],
 
+	lecturePlanUrl: "",
+	lecturePlanCollapsed: false,
+
 	calendars: [],
 	colorRules: [],
 	calendarEmbedUrl: "",
@@ -121,10 +131,15 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
 	recentCount: 8,
 };
 
-/** Ergänzt fehlende Widgets (z.B. nach einem Update), behält Reihenfolge des Nutzers. */
+/** Ergänzt fehlende Widgets (z.B. nach einem Update) an ihrer Standard-Position, behält Reihenfolge des Nutzers. */
 export function normalizeSettings(s: DashboardSettings): DashboardSettings {
-	const known = new Set(s.widgets.map((w) => w.id));
-	for (const w of DEFAULT_SETTINGS.widgets) if (!known.has(w.id)) s.widgets.push({ ...w });
+	const defs = DEFAULT_SETTINGS.widgets;
+	defs.forEach((w, i) => {
+		if (s.widgets.some((x) => x.id === w.id)) return;
+		// vor dem nächsten bekannten Nachfolger aus der Standard-Reihenfolge einfügen
+		const next = defs.slice(i + 1).map((d) => s.widgets.findIndex((x) => x.id === d.id)).find((j) => j >= 0);
+		s.widgets.splice(next ?? s.widgets.length, 0, { ...w });
+	});
 	s.widgets = s.widgets.filter((w) => w.id in WIDGET_LABELS);
 	return s;
 }

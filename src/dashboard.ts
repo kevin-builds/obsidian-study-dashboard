@@ -7,6 +7,7 @@ import { WIDGETS } from "./widgets";
 /** Zustand, der ein Neu-Rendern (z.B. nach Dateiänderung) überlebt. */
 export interface DashboardState {
 	calendarOffset: number;
+	lectureWeekOffset: number;
 	selectedDay: string | null;
 	activityDay: string | null;
 	reviewSeed: number;
@@ -33,6 +34,8 @@ export interface WidgetContext {
 	isExcluded(f: TFile): boolean;
 	flashcards(): Promise<FlashcardData>;
 	rerender(): void;
+	/** Nur diese Karte neu zeichnen (schnell, ohne die anderen Widgets). */
+	refresh(): Promise<void>;
 	markdown(el: HTMLElement, md: string, sourcePath?: string): Promise<void>;
 	openFile(path: string, newTab?: boolean): void;
 	fileLink(parent: HTMLElement, file: TFile | string, text?: string): HTMLElement;
@@ -52,7 +55,7 @@ export interface WidgetDef {
  * als auch vom Codeblock ```study-dashboard``` benutzt.
  */
 export class DashboardRenderer {
-	state: DashboardState = { calendarOffset: 0, selectedDay: null, activityDay: null, reviewSeed: Math.random() };
+	state: DashboardState = { calendarOffset: 0, lectureWeekOffset: 0, selectedDay: null, activityDay: null, reviewSeed: Math.random() };
 	/** Änderungen verpasst, weil verdeckt — beim nächsten Anzeigen neu zeichnen. */
 	stale = false;
 	private generation = 0;
@@ -90,12 +93,18 @@ export class DashboardRenderer {
 		const jobs: Promise<void>[] = [];
 		for (const w of widgets) {
 			const def = WIDGETS[w.id];
-			const el = grid.createDiv({ cls: "sd-card" + (def.full ? " sd-full" : "") });
+			const cardCls = "sd-card" + (def.full ? " sd-full" : "");
+			const el = grid.createDiv({ cls: cardCls });
 			el.dataset.widget = w.id;
-			const head = el.createDiv({ cls: "sd-card-head" });
-			head.createSpan({ cls: "sd-card-title", text: def.title(settings) });
-			const aside = head.createSpan({ cls: "sd-card-aside" });
-			const body = el.createDiv({ cls: "sd-card-body" + (def.scroll ? " sd-scroll" : "") });
+			const makeParts = () => {
+				const head = createDiv({ cls: "sd-card-head" });
+				head.createSpan({ cls: "sd-card-title", text: def.title(settings) });
+				const aside = head.createSpan({ cls: "sd-card-aside" });
+				const body = createDiv({ cls: "sd-card-body" + (def.scroll ? " sd-scroll" : "") });
+				return { head, aside, body };
+			};
+			const { head, aside, body } = makeParts();
+			el.append(head, body);
 
 			const ctx: WidgetContext = {
 				app,
@@ -109,6 +118,16 @@ export class DashboardRenderer {
 				isExcluded,
 				flashcards: () => (flash ??= loadFlashcards(app, settings.flashcardTag, isExcluded)),
 				rerender: () => this.render(),
+				refresh: async () => {
+					// Neu in frische (noch unsichtbare) Teile zeichnen und erst dann tauschen → kein Flackern
+					const old = ctx.card;
+					const parts = makeParts();
+					ctx.card = { el, ...parts };
+					el.className = cardCls;
+					await run();
+					old.head.replaceWith(parts.head);
+					old.body.replaceWith(parts.body);
+				},
 				markdown: (target, md, sp) =>
 					MarkdownRenderer.render(app, md, target, sp ?? this.sourcePath, this.component),
 				openFile: (path, newTab = false) => app.workspace.openLinkText(path, this.sourcePath, newTab),
@@ -131,16 +150,17 @@ export class DashboardRenderer {
 			};
 
 			// Jede Karte isoliert: ein Fehler blendet nur diese Karte aus.
-			jobs.push(
+			const run = () =>
 				Promise.resolve()
 					.then(() => def.render(ctx))
 					.catch((e) => {
 						console.error(`[Study Dashboard] Widget "${w.id}" fehlgeschlagen:`, e);
-						body.empty();
-						body.createDiv({ cls: "sd-error", text: "Dieses Widget konnte nicht geladen werden." });
-						body.createDiv({ cls: "sd-muted sd-small", text: String((e as Error)?.message ?? e) });
-					})
-			);
+						const b = ctx.card.body;
+						b.empty();
+						b.createDiv({ cls: "sd-error", text: "Dieses Widget konnte nicht geladen werden." });
+						b.createDiv({ cls: "sd-muted sd-small", text: String((e as Error)?.message ?? e) });
+					});
+			jobs.push(run());
 		}
 
 		if (!widgets.length) grid.createDiv({ cls: "sd-muted", text: "Keine Widgets aktiv — in den Plugin-Einstellungen einschalten." });

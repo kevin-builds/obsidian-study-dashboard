@@ -34,7 +34,8 @@ export const calendar: WidgetDef = {
 			b.addEventListener("click", () => {
 				state.calendarOffset = delta === null ? 0 : state.calendarOffset + delta;
 				state.selectedDay = null;
-				ctx.rerender();
+				// Nur den Kalender neu zeichnen, nicht das ganze Dashboard
+				void ctx.refresh();
 			});
 		};
 		btn("‹", "Vorheriger Monat", -1);
@@ -73,6 +74,16 @@ export const calendar: WidgetDef = {
 
 		const sources = settings.calendars.filter((c) => c.enabled && /^(https?|webcal):\/\//i.test(c.url.trim()));
 		const errors: string[] = [];
+
+		if (sources.length) {
+			const rb = nav.createEl("button", { text: "↻", cls: "sd-btn sd-btn-small", attr: { "aria-label": "Kalender neu laden" } });
+			rb.addEventListener("click", async () => {
+				rb.disabled = true;
+				rb.addClass("is-loading");
+				await Promise.all(sources.map((c) => plugin.fetchCalendar(c.url, true).catch(() => undefined)));
+				await ctx.refresh();
+			});
+		}
 		await Promise.all(
 			sources.map(async (c) => {
 				try {
@@ -188,9 +199,20 @@ export const calendar: WidgetDef = {
 		}
 		if (!activeCell) detail.createDiv({ cls: "sd-muted sd-small", text: "Tag anklicken, um die Termine zu sehen." });
 
-		if (errors.length) body.createDiv({ cls: "sd-error sd-small", text: "⚠️ Nicht ladbar: " + errors.join(", ") });
+		if (errors.length) body.createDiv({ cls: "sd-error sd-small", text: "⚠️ Nicht ladbar: " + errors.join(", ") + " — später mit ↻ erneut versuchen." });
+		// Abruf gerade gescheitert, aber ein älterer Stand ist da → anzeigen und darauf hinweisen
+		const hm = (ms: number) => new Date(ms).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+		for (const c of sources) {
+			if (errors.includes(c.name)) continue;
+			const st = plugin.calendarStatus(c.url);
+			if (st.error && st.at) body.createDiv({ cls: "sd-muted sd-small", text: `⚠️ ${c.name}: ${st.error}. Angezeigt wird der Stand vom ${hm(st.at)}.` });
+		}
 		if (!sources.length) body.createDiv({ cls: "sd-muted sd-small sd-hint", text: "💡 Google-/Outlook-/iCloud-Kalender per iCal-URL in den Plugin-Einstellungen hinzufügen." });
-		else aside.prepend(createSpan({ cls: "sd-muted", text: sources.map((s) => s.name).join(" · ") + "  " }));
+		else {
+			const ats = sources.map((s) => plugin.calendarStatus(s.url).at).filter((a): a is number => a !== null);
+			const stand = ats.length ? ` · Stand ${new Date(Math.min(...ats)).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}` : "";
+			aside.prepend(createSpan({ cls: "sd-muted", text: sources.map((s) => s.name).join(" · ") + stand + "  " }));
+		}
 	},
 };
 

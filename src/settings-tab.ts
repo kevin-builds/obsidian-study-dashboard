@@ -164,6 +164,11 @@ export class DashboardSettingTab extends PluginSettingTab {
 			.setDesc("Optional: Embed-URL eines öffentlichen Google-Kalenders. Für das Widget „Kalender-iframe“.")
 			.addText((t) => t.setPlaceholder("https://calendar.google.com/calendar/embed?src=…").setValue(s.calendarEmbedUrl).onChange((v) => ((s.calendarEmbedUrl = v.trim()), save())));
 
+		new Setting(containerEl)
+			.setName("Vorlesungsplan")
+			.setDesc("Rapla-Link zum Vorlesungsplan (oder direkt ein iCal-Link). Erscheint als einklappbare Wochenansicht „Vorlesungsplan“.")
+			.addText((t) => t.setPlaceholder("https://rapla.dhbw.de/rapla/internal_calendar?key=…").setValue(s.lecturePlanUrl).onChange((v) => ((s.lecturePlanUrl = v.trim()), save())));
+
 		// ---------- Listen ----------
 		new Setting(containerEl).setName("Listen").setHeading();
 		new Setting(containerEl)

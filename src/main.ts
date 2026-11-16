@@ -51,6 +51,10 @@ export default class StudyDashboardPlugin extends Plugin {
 	settings: DashboardSettings = DEFAULT_SETTINGS;
 	hosts = new Set<DashboardRenderer>();
 	private icsCache = new Map<string, { at: number; events: Promise<IcsEvent[]> }>();
+	/** Letzter erfolgreicher Stand je Feed */
+	private icsGood = new Map<string, { at: number; events: IcsEvent[] }>();
+	/** Fehler-Backoff je Feed: bis wann nicht neu fragen */
+	private icsFail = new Map<string, { until: number; delay: number; message: string }>();
 
 	async onload() {
 		await this.loadSettings();
@@ -62,7 +66,7 @@ export default class StudyDashboardPlugin extends Plugin {
 			id: "refresh",
 			name: "Dashboard neu laden (Kalender neu abrufen)",
 			callback: () => {
-				this.icsCache.clear();
+				this.clearCalendarCache();
 				this.refreshAll();
 			},
 		});
@@ -121,17 +125,110 @@ export default class StudyDashboardPlugin extends Plugin {
 		}
 	}
 
-	/** iCal-Feed holen, mit Zwischenspeicher, damit nicht jedes Neu-Zeichnen den Server fragt. */
-	fetchCalendar(url: string): Promise<IcsEvent[]> {
+	/**
+	 * iCal-Feed holen, mit Zwischenspeicher, damit nicht jedes Neu-Zeichnen den Server fragt.
+	 * - Erfolgreiche Abrufe werden auch auf der Platte gespeichert (überlebt Neustarts → kein Abruf beim Start).
+	 * - Nach einem Fehler wird eine Weile gar nicht mehr gefragt (Backoff), sonst hält z.B. Google
+	 *   mit „429 Too Many Requests“ die Sperre aufrecht. Solange wird der letzte gute Stand angezeigt.
+	 * - force: Aktualisieren-Knopf — ignoriert Zwischenspeicher und Backoff (höchstens alle 30 s).
+	 */
+	async fetchCalendar(url: string, force = false): Promise<IcsEvent[]> {
 		url = url.trim();
+		const now = Date.now();
 		const ttl = Math.max(1, this.settings.calendarCacheMinutes) * 60000;
 		const hit = this.icsCache.get(url);
-		if (hit && Date.now() - hit.at < ttl) return hit.events;
-		// requestUrl umgeht CORS und funktioniert auf Desktop und Mobile
-		const events = requestUrl({ url: url.replace(/^webcal:\/\//i, "https://") }).then((r) => parseICS(r.text));
-		this.icsCache.set(url, { at: Date.now(), events });
+		if (hit && (!force || now - hit.at < 30000) && now - hit.at < ttl) return hit.events;
+
+		const good = this.icsGood.get(url) ?? (await this.readDiskCache(url));
+		if (!force && good && now - good.at < ttl) {
+			const events = Promise.resolve(good.events);
+			this.icsCache.set(url, { at: good.at, events });
+			return events;
+		}
+		const fail = this.icsFail.get(url);
+		if (!force && fail && now < fail.until) {
+			if (good) return good.events;
+			throw new Error(fail.message);
+		}
+
+		const events = this.download(url, good);
+		this.icsCache.set(url, { at: now, events });
 		events.catch(() => this.icsCache.delete(url));
 		return events;
+	}
+
+	private async download(url: string, good: { at: number; events: IcsEvent[] } | null): Promise<IcsEvent[]> {
+		let status = 0;
+		let text = "";
+		try {
+			// requestUrl umgeht CORS und funktioniert auf Desktop und Mobile
+			const r = await requestUrl({ url: url.replace(/^webcal:\/\//i, "https://"), throw: false });
+			status = r.status;
+			text = r.text;
+		} catch (e) {
+			status = 0;
+		}
+		if (status >= 200 && status < 300 && /BEGIN:VCALENDAR/.test(text)) {
+			const events = parseICS(text);
+			this.icsGood.set(url, { at: Date.now(), events });
+			this.icsFail.delete(url);
+			void this.writeDiskCache(url, text);
+			return events;
+		}
+		// Fehler: Wartezeit verdoppeln (5 min … 2 h), bei 429 gleich mit 15 min anfangen
+		const prev = this.icsFail.get(url)?.delay ?? 0;
+		const delay = Math.min(120, Math.max(status === 429 ? 15 : 5, prev * 2));
+		const message =
+			status === 429
+				? "Zu viele Abrufe — der Server blockt kurz"
+				: status === 0
+					? "Keine Verbindung"
+					: `Server antwortet mit Fehler ${status}`;
+		this.icsFail.set(url, { until: Date.now() + delay * 60000, delay, message });
+		console.warn(`[Study Dashboard] Kalender-Abruf fehlgeschlagen (${status || "offline"}), nächster Versuch in ${delay} min`);
+		if (good) return good.events;
+		throw new Error(message);
+	}
+
+	/** Für die Anzeige: Stand des letzten erfolgreichen Abrufs und ggf. aktueller Fehler. */
+	calendarStatus(url: string): { at: number | null; error: string | null } {
+		url = url.trim();
+		const fail = this.icsFail.get(url);
+		return { at: this.icsGood.get(url)?.at ?? null, error: fail && Date.now() < fail.until ? fail.message : null };
+	}
+
+	// --- Platten-Zwischenspeicher (im Plugin-Ordner, damit ein Neustart nicht sofort neu abruft) ---
+	private cacheFile = () => `${this.manifest.dir}/ics-cache.json`;
+	private diskCache: Record<string, { at: number; text: string }> | null = null;
+	private cacheKey(url: string) {
+		let h = 0;
+		for (let i = 0; i < url.length; i++) h = (Math.imul(31, h) + url.charCodeAt(i)) | 0;
+		return "k" + (h >>> 0).toString(36);
+	}
+	private async loadDiskCache() {
+		if (this.diskCache) return this.diskCache;
+		try {
+			this.diskCache = JSON.parse(await this.app.vault.adapter.read(this.cacheFile()));
+		} catch {
+			this.diskCache = {};
+		}
+		return this.diskCache!;
+	}
+	private async readDiskCache(url: string) {
+		const entry = (await this.loadDiskCache())[this.cacheKey(url)];
+		if (!entry) return null;
+		const good = { at: entry.at, events: parseICS(entry.text) };
+		this.icsGood.set(url, good);
+		return good;
+	}
+	private async writeDiskCache(url: string, text: string) {
+		const cache = await this.loadDiskCache();
+		cache[this.cacheKey(url)] = { at: Date.now(), text };
+		try {
+			await this.app.vault.adapter.write(this.cacheFile(), JSON.stringify(cache));
+		} catch (e) {
+			console.warn("[Study Dashboard] Kalender-Zwischenspeicher nicht schreibbar:", e);
+		}
 	}
 
 	async loadSettings() {
@@ -149,5 +246,6 @@ export default class StudyDashboardPlugin extends Plugin {
 
 	clearCalendarCache() {
 		this.icsCache.clear();
+		this.icsFail.clear();
 	}
 }

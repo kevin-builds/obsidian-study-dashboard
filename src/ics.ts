@@ -8,6 +8,9 @@ export interface IcsEvent {
 	end: Date | null;
 	allDay: boolean;
 	title: string;
+	location: string;
+	description: string;
+	categories: string;
 	rrule: string | null;
 	exdates: Set<string>;
 	recurrenceId: string | null;
@@ -62,6 +65,9 @@ export function parseICS(text: string): IcsEvent[] {
 			end: en ? en.date : null,
 			allDay: st.allDay,
 			title: unescape(fld("SUMMARY")?.value ?? "(ohne Titel)"),
+			location: unescape(fld("LOCATION")?.value ?? ""),
+			description: unescape(fld("DESCRIPTION")?.value ?? ""),
+			categories: unescape(fld("CATEGORIES")?.value ?? ""),
 			rrule: fld("RRULE")?.value ?? null,
 			exdates,
 			recurrenceId: ridDate ? dayKey(ridDate.date) : null,

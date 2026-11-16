@@ -447,3 +447,124 @@ body {
 	.sd-cal-bar,
 	.sd-cal-allday { height: 5px; line-height: 5px; padding: 0; }
 }
+
+/* ---------- Einklappbare Karten (Vorlesungsplan) ---------- */
+.sd-collapsible > .sd-card-head {
+	cursor: pointer;
+	user-select: none;
+	justify-content: flex-start;
+}
+.sd-collapsible > .sd-card-head .sd-card-aside {
+	margin-left: auto;
+}
+.sd-chevron {
+	display: inline-flex;
+	color: var(--text-muted);
+	transition: transform 0.15s ease;
+}
+.sd-chevron svg {
+	width: 16px;
+	height: 16px;
+}
+.sd-collapsible.is-collapsed .sd-chevron {
+	transform: rotate(-90deg);
+}
+.sd-collapsible.is-collapsed > .sd-card-head {
+	margin-bottom: 0;
+}
+.sd-collapsible.is-collapsed > .sd-card-body {
+	display: none;
+}
+
+/* ---------- Vorlesungsplan (Wochenansicht) ---------- */
+.sd-week {
+	display: grid;
+	grid-template-columns: 44px repeat(var(--sd-week-cols, 5), minmax(0, 1fr));
+	column-gap: 4px;
+}
+.sd-week-dayhead {
+	font-size: 12px;
+	font-weight: 600;
+	text-align: center;
+	padding: 2px 0 6px;
+	color: var(--text-muted);
+}
+.sd-week-dayhead.is-today {
+	color: var(--text-accent);
+}
+.sd-week-hours {
+	position: relative;
+}
+.sd-week-hour {
+	position: absolute;
+	right: 4px;
+	transform: translateY(-50%);
+	font-size: 10px;
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+}
+.sd-week-hour:first-child {
+	transform: none;
+}
+.sd-week-col {
+	position: relative;
+	border-radius: 6px;
+	background-color: var(--background-secondary);
+	background-image: repeating-linear-gradient(to bottom, var(--sd-border) 0 1px, transparent 1px var(--sd-hour, 46px));
+}
+.sd-week-col.is-today {
+	box-shadow: inset 0 0 0 1.5px var(--interactive-accent);
+}
+.sd-week-ev {
+	position: absolute;
+	overflow: hidden;
+	padding: 2px 5px;
+	border-radius: 5px;
+	border-left: 3px solid var(--sd-c);
+	background: color-mix(in srgb, var(--sd-c) 18%, var(--background-primary));
+	font-size: 11px;
+	line-height: 1.25;
+	cursor: default;
+}
+.sd-week-ev.is-exam {
+	background: color-mix(in srgb, var(--sd-c) 30%, var(--background-primary));
+}
+.sd-week-ev-time {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+.sd-week-ev-title {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+.sd-week-ev-meta {
+	color: var(--text-muted);
+}
+.sd-week-list {
+	display: none;
+}
+.sd-week-list .sd-detail-head.is-today {
+	color: var(--text-accent);
+}
+.sd-week-open {
+	display: inline-flex;
+	align-items: center;
+}
+.sd-week-open svg {
+	width: 13px;
+	height: 13px;
+}
+@media (max-width: 600px) {
+	.sd-week { display: none; }
+	.sd-week-list { display: block; }
+	.sd-week-range { display: none; }
+}
+
+/* ---------- Aktualisieren-Knopf ---------- */
+.sd-btn.is-loading {
+	opacity: 0.5;
+	animation: sd-spin 1s linear infinite;
+}
+@keyframes sd-spin {
+	to { transform: rotate(360deg); }
+}
