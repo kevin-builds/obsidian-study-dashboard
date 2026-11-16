@@ -1,6 +1,6 @@
 # Study Dashboard für Obsidian
 
-Ein Dashboard für Obsidian, gebaut fürs Studium: Aktivitäts-Heatmap, Kalender aus Google/Outlook/iCloud, Lernplan für das Spaced-Repetition-Plugin, Klausur-Countdown, To-Dos und deine zuletzt bearbeiteten Notizen auf einer Seite.
+Ein Dashboard für Obsidian, gebaut fürs Studium: Aktivitäts-Heatmap, Kalender aus Apple/Google/Outlook, Lernplan für das Spaced-Repetition-Plugin, Klausur-Countdown, To-Dos und deine zuletzt bearbeiteten Notizen auf einer Seite.
 
 Das Plugin braucht **kein Dataview** und keinen Code in deinen Notizen. Eingerichtet wird alles in den Plugin-Einstellungen.
 
@@ -63,7 +63,16 @@ Es gibt zwei Wege, das Dashboard zu öffnen:
 
 ## Kalender einbinden
 
-Google Kalender: *Einstellungen* → links den Kalender wählen → *Kalender integrieren* → **Geheime Adresse im iCal-Format** kopieren und in den Plugin-Einstellungen unter *Kalender* einfügen. Outlook und iCloud bieten ebenfalls ICS- bzw. `webcal://`-Links.
+Jeder Kalender mit einem iCal-Link (`https://…` oder `webcal://…`) funktioniert. In den Plugin-Einstellungen unter *Kalender* gibt es Knöpfe für Apple, Google und Outlook und einen Test-Knopf (🔄), der sofort prüft, ob der Link lädt.
+
+**Apple Kalender (iCloud)**
+- iPhone/iPad: Kalender-App → unten *Kalender* → beim Kalender auf ⓘ → **Öffentlicher Kalender** einschalten → *Link teilen …* → *Kopieren*.
+- Mac: Kalender-App → Rechtsklick auf den Kalender → *Kalender teilen …* → **Öffentlicher Kalender** anhaken → Link kopieren.
+- Geht nur mit iCloud-Kalendern, nicht mit „Auf meinem Mac“. Änderungen tauchen im Link teils erst nach einigen Minuten auf.
+
+**Google Kalender:** *Einstellungen* → links den Kalender wählen → *Kalender integrieren* → **Geheime Adresse im iCal-Format** kopieren.
+
+**Outlook / Microsoft 365:** *Einstellungen* → *Kalender* → *Freigegebene Kalender* → *Kalender veröffentlichen* → Kalender und „Kann alle Details anzeigen“ wählen → ICS-Link kopieren.
 
 > [!warning]
 > Die geheime iCal-Adresse ist wie ein Passwort: Wer sie hat, kann deinen Kalender lesen. Das Plugin speichert sie in `.obsidian/plugins/study-dashboard/data.json` in deinem Vault. Wenn du deinen Vault öffentlich teilst (z.B. als Git-Repo), schließe diese Datei aus.

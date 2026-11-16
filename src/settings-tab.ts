@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type StudyDashboardPlugin from "./main";
 import { WIDGET_LABELS } from "./settings";
 
@@ -111,11 +111,31 @@ export class DashboardSettingTab extends PluginSettingTab {
 		// ---------- Kalender ----------
 		new Setting(containerEl).setName("Kalender").setHeading();
 		const note = containerEl.createDiv({ cls: "setting-item-description sd-settings-note" });
-		note.appendText("Google Kalender: Einstellungen → Kalender auswählen → „Kalender integrieren“ → ");
-		note.createEl("b", { text: "Geheime Adresse im iCal-Format" });
-		note.appendText(". Outlook und iCloud bieten ebenfalls ICS-/webcal-Links. ");
-		note.createEl("b", { text: "Achtung: " });
-		note.appendText("Die geheime Adresse ist wie ein Passwort und wird in den Plugin-Daten deines Vaults gespeichert (.obsidian/plugins/study-dashboard/data.json).");
+		note.appendText("Jeder Kalender, der einen iCal-Link (https://… oder webcal://…) anbietet, funktioniert. So kommt man an den Link:");
+		const howTo = (title: string, steps: string[], hint?: string) => {
+			const d = note.createEl("details", { cls: "sd-settings-howto" });
+			d.createEl("summary", { text: title });
+			const ol = d.createEl("ol");
+			for (const st of steps) ol.createEl("li", { text: st });
+			if (hint) d.createDiv({ cls: "sd-tiny", text: hint });
+		};
+		howTo("Apple Kalender (iCloud)", [
+			"iPhone/iPad: Kalender-App → unten „Kalender“ → beim gewünschten Kalender auf ⓘ tippen.",
+			"„Öffentlicher Kalender“ einschalten → „Link teilen …“ → „Kopieren“.",
+			"Mac: Kalender-App → Rechtsklick auf den Kalender → „Kalender teilen …“ → „Öffentlicher Kalender“ anhaken → Link kopieren.",
+			"Den webcal://-Link unten mit „＋ Apple“ einfügen.",
+		], "Geht nur mit iCloud-Kalendern, nicht mit „Auf meinem Mac“. Änderungen erscheinen bei iCloud manchmal erst nach einigen Minuten im Link.");
+		howTo("Google Kalender", [
+			"calendar.google.com → Einstellungen → links den Kalender wählen → „Kalender integrieren“.",
+			"„Geheime Adresse im iCal-Format“ kopieren und unten mit „＋ Google“ einfügen.",
+		]);
+		howTo("Outlook / Microsoft 365", [
+			"outlook.com → Einstellungen → Kalender → „Freigegebene Kalender“ → „Kalender veröffentlichen“.",
+			"Kalender und „Kann alle Details anzeigen“ wählen → „Veröffentlichen“ → den ICS-Link kopieren.",
+		]);
+		const warn = note.createDiv();
+		warn.createEl("b", { text: "Achtung: " });
+		warn.appendText("Wer den Link hat, kann den Kalender lesen. Er wird in den Plugin-Daten deines Vaults gespeichert (.obsidian/plugins/study-dashboard/data.json).");
 
 		s.calendars.forEach((c, i) => {
 			new Setting(containerEl)
@@ -124,18 +144,22 @@ export class DashboardSettingTab extends PluginSettingTab {
 				.addText((t) => t.setPlaceholder("Name").setValue(c.name).onChange((v) => ((c.name = v), save())))
 				.addText((t) => {
 					t.inputEl.addClass("sd-wide");
-					t.setPlaceholder("https://…/basic.ics").setValue(c.url).onChange((v) => {
+					t.setPlaceholder("webcal://… oder https://….ics").setValue(c.url).onChange((v) => {
 						c.url = v.trim();
 						this.plugin.clearCalendarCache();
 						save();
 					});
 				})
 				.addColorPicker((cp) => cp.setValue(c.color).onChange((v) => ((c.color = v), save())))
+				.addExtraButton((b) => b.setIcon("refresh-cw").setTooltip("Link testen").onClick(() => this.testCalendar(c.url)))
 				.addExtraButton((b) => b.setIcon("trash").setTooltip("Entfernen").onClick(() => (s.calendars.splice(i, 1), saveAndRedraw())));
 		});
-		new Setting(containerEl).addButton((b) =>
-			b.setButtonText("＋ Kalender").onClick(() => (s.calendars.push({ name: "Kalender", url: "", color: "#4285f4", enabled: true }), saveAndRedraw()))
-		);
+		const addCal = (name: string, color: string) => () => (s.calendars.push({ name, url: "", color, enabled: true }), saveAndRedraw());
+		new Setting(containerEl)
+			.addButton((b) => b.setButtonText("＋ Apple").onClick(addCal("Apple Kalender", "#ff3b30")))
+			.addButton((b) => b.setButtonText("＋ Google").onClick(addCal("Google Kalender", "#4285f4")))
+			.addButton((b) => b.setButtonText("＋ Outlook").onClick(addCal("Outlook", "#0078d4")))
+			.addButton((b) => b.setButtonText("＋ Anderer").onClick(addCal("Kalender", "#8e8e93")));
 
 		new Setting(containerEl)
 			.setName("Farben nach Stichwort")
@@ -184,6 +208,22 @@ export class DashboardSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Einträge pro Liste")
 			.addText((t) => num(t, s.recentCount, (v) => ((s.recentCount = v), save())));
+	}
+
+	/** Lädt einen Kalender-Link sofort und meldet, ob er funktioniert. */
+	private async testCalendar(url: string) {
+		url = url.trim();
+		if (!/^(https?|webcal):\/\//i.test(url)) {
+			new Notice("Der Link muss mit webcal://, https:// oder http:// beginnen.");
+			return;
+		}
+		try {
+			const events = await this.plugin.fetchCalendar(url, true);
+			new Notice(events.length ? `✓ Kalender funktioniert: ${events.length} Termine gefunden.` : "✓ Link funktioniert, aber der Kalender ist leer.");
+			this.plugin.refreshAll();
+		} catch (e) {
+			new Notice(`✗ Kalender nicht ladbar: ${e instanceof Error ? e.message : e}`);
+		}
 	}
 }
 

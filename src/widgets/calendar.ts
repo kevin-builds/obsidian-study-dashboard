@@ -207,7 +207,7 @@ export const calendar: WidgetDef = {
 			const st = plugin.calendarStatus(c.url);
 			if (st.error && st.at) body.createDiv({ cls: "sd-muted sd-small", text: `⚠️ ${c.name}: ${st.error}. Angezeigt wird der Stand vom ${hm(st.at)}.` });
 		}
-		if (!sources.length) body.createDiv({ cls: "sd-muted sd-small sd-hint", text: "💡 Google-/Outlook-/iCloud-Kalender per iCal-URL in den Plugin-Einstellungen hinzufügen." });
+		if (!sources.length) body.createDiv({ cls: "sd-muted sd-small sd-hint", text: "💡 Apple-, Google- oder Outlook-Kalender per iCal-Link in den Plugin-Einstellungen hinzufügen." });
 		else {
 			const ats = sources.map((s) => plugin.calendarStatus(s.url).at).filter((a): a is number => a !== null);
 			const stand = ats.length ? ` · Stand ${new Date(Math.min(...ats)).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}` : "";

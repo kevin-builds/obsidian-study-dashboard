@@ -434,6 +434,10 @@ body {
 .sd-settings .sd-settings-row .setting-item-control { flex-wrap: wrap; justify-content: flex-start; }
 .sd-settings .sd-wide { flex: 1 1 240px; }
 .sd-settings-note { margin: 0 0 12px; }
+.sd-settings-note > div { margin-top: 8px; }
+.sd-settings-howto { margin: 6px 0; }
+.sd-settings-howto summary { cursor: pointer; font-weight: var(--font-semibold); color: var(--text-normal); }
+.sd-settings-howto ol { margin: 4px 0; padding-left: 22px; }
 
 /* ---------- Schmale Bildschirme ---------- */
 @media (max-width: 600px) {
